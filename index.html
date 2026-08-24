@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Paralela Project - Entrenamiento Distribuido</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            background: #f5f7fa;
+            color: #222;
+        }
+
+        header {
+            background: #1f2937;
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0 0 10px;
+            font-size: 2.2rem;
+        }
+
+        header p {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        main {
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        section {
+            background: white;
+            margin-bottom: 25px;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        h2 {
+            color: #1f2937;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 8px;
+        }
+
+        h3 {
+            color: #374151;
+        }
+
+        strong {
+            color: #111827;
+        }
+
+        ul,
+        ol {
+            padding-left: 25px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th,
+        td {
+            border: 1px solid #d1d5db;
+            padding: 12px;
+            text-align: center;
+        }
+
+        th {
+            background: #e5e7eb;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background: #f9fafb;
+        }
+
+        .highlight {
+            background: #eef2ff;
+            border-left: 5px solid #4f46e5;
+            padding: 15px 20px;
+            margin: 20px 0;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .result-card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .result-card .value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #111827;
+        }
+
+        .result-card .label {
+            color: #6b7280;
+            margin-top: 5px;
+        }
+
+        .architecture {
+            background: #111827;
+            color: #f9fafb;
+            padding: 25px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: "Courier New", monospace;
+            white-space: pre;
+            line-height: 1.4;
+        }
+
+        .formula {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: center;
+            font-size: 1.1rem;
+            font-family: "Courier New", monospace;
+        }
+
+        .conclusion {
+            background: #ecfdf5;
+            border-left: 5px solid #10b981;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px 20px;
+            color: #6b7280;
+        }
+
+        code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: "Courier New", monospace;
+        }
+
+        .metrics-final {
+            background: #111827;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: "Courier New", monospace;
+            overflow-x: auto;
+        }
+
+        @media (max-width: 700px) {
+            section {
+                padding: 20px;
+            }
+
+            header h1 {
+                font-size: 1.7rem;
+            }
+
+            table {
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Paralela Project</h1>
+    <p>Entrenamiento distribuido de redes neuronales mediante Data Parallelism y PyTorch DDP</p>
+</header>
+
+<main>
+
+    <!-- 1. PROBLEMA -->
+    <section>
+        <h2>1. Problema</h2>
+
+        <p>
+            El entrenamiento de redes neuronales profundas es un proceso
+            computacionalmente intensivo. A medida que los modelos y los
+            datasets crecen, el tiempo requerido para completar el entrenamiento
+            en una sola GPU puede aumentar considerablemente.
+        </p>
+
+        <p>
+            El desafío principal consiste en <strong>acelerar el proceso de
+            entrenamiento</strong> sin degradar la calidad del modelo
+            (accuracy), aprovechando múltiples GPUs de forma eficiente.
+        </p>
+
+        <p>
+            Sin embargo, la paralelización introduce costos de comunicación,
+            sincronización y coordinación que impiden alcanzar un speedup ideal.
+        </p>
+
+        <p>
+            Este proyecto aborda el problema mediante la implementación de
+            <strong>Data Parallelism</strong> utilizando
+            <strong>PyTorch DistributedDataParallel (DDP)</strong> sobre dos
+            GPUs, midiendo el speedup y la eficiencia paralela obtenidos.
+        </p>
+    </section>
+
+    <!-- 2. OBJETIVOS -->
+    <section>
+        <h2>2. Objetivos</h2>
+
+        <ol>
+            <li>
+                Implementar un entrenamiento <strong>baseline secuencial</strong>
+                de ResNet18 sobre CIFAR-10 utilizando una sola GPU.
+            </li>
+
+            <li>
+                Implementar el mismo entrenamiento de forma distribuida mediante
+                PyTorch DDP con 2 GPUs.
+            </li>
+
+            <li>
+                Comparar tiempos de ejecución, accuracy de entrenamiento y
+                accuracy de prueba entre ambas versiones.
+            </li>
+
+            <li>
+                Calcular <strong>speedup</strong>, <strong>eficiencia paralela</strong>
+                y la brecha respecto al tiempo ideal.
+            </li>
+
+            <li>
+                Demostrar que la paralelización reduce significativamente el
+                tiempo de entrenamiento sin sacrificar la calidad del modelo.
+            </li>
+
+            <li>
+                Relacionar los resultados experimentales con conceptos de
+                computación paralela como la Ley de Amdahl, overhead de
+                comunicación y operaciones colectivas.
+            </li>
+        </ol>
+    </section>
+
+    <!-- 3. MARCO TEÓRICO -->
+    <section>
+        <h2>3. Marco teórico</h2>
+
+        <h3>Data Parallelism</h3>
+
+        <p>
+            En Data Parallelism, el dataset se divide entre múltiples
+            dispositivos. Cada GPU mantiene una <strong>réplica completa del
+            modelo</strong> y procesa un subconjunto diferente del batch.
+        </p>
+
+        <p>
+            Después del cálculo de gradientes se realiza una sincronización,
+            normalmente mediante una operación colectiva
+            <strong>ALLREDUCE</strong>, para que todas las réplicas actualicen
+            sus pesos de forma consistente.
+        </p>
+
+        <h3>PyTorch DistributedDataParallel (DDP)</h3>
+
+        <p>
+            DDP es la API de PyTorch utilizada para implementar entrenamiento
+            distribuido.
+        </p>
+
+        <ul>
+            <li>Cada proceso controla una GPU.</li>
+            <li>
+                <code>DistributedSampler</code> particiona el dataset entre
+                los procesos.
+            </li>
+            <li>
+                DDP sincroniza automáticamente los gradientes después de
+                <code>loss.backward()</code>.
+            </li>
+            <li>
+                Las réplicas mantienen pesos consistentes mediante la
+                sincronización de gradientes.
+            </li>
+        </ul>
+
+        <h3>Métricas de rendimiento paralelo</h3>
+
+        <p><strong>Speedup:</strong></p>
+
+        <div class="formula">
+            S = T₁ / T<sub>N</sub>
+        </div>
+
+        <p><strong>Eficiencia:</strong></p>
+
+        <div class="formula">
+            E = S / N
+        </div>
+
+        <p>
+            Estas métricas permiten cuantificar qué tan efectiva es la
+            paralelización y qué tan cerca se encuentra el sistema del
+            speedup ideal.
+        </p>
+    </section>
+
+    <!-- 4. METODOLOGÍA -->
+    <section>
+        <h2>4. Metodología</h2>
+
+        <p>
+            Se realizaron dos experimentos utilizando la misma arquitectura,
+            dataset, número de épocas y batch global.
+        </p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Parámetro</th>
+                    <th>Valor</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>Dataset</td>
+                    <td>CIFAR-10</td>
+                </tr>
+
+                <tr>
+                    <td>Modelo</td>
+                    <td>ResNet18</td>
+                </tr>
+
+                <tr>
+                    <td>Épocas</td>
+                    <td>15</td>
+                </tr>
+
+                <tr>
+                    <td>Batch size global</td>
+                    <td>128</td>
+                </tr>
+
+                <tr>
+                    <td>Optimizador</td>
+                    <td>SGD</td>
+                </tr>
+
+                <tr>
+                    <td>Framework</td>
+                    <td>PyTorch + DDP</td>
+                </tr>
+
+                <tr>
+                    <td>Hardware</td>
+                    <td>NVIDIA T4</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Configuraciones</h3>
+
+        <ul>
+            <li>
+                <strong>Baseline:</strong> 1 GPU con batch size de 128.
+            </li>
+
+            <li>
+                <strong>DDP:</strong> 2 GPUs con batch global de 128,
+                distribuyendo 64 muestras por GPU.
+            </li>
+        </ul>
+
+        <p>Se midieron:</p>
+
+        <ul>
+            <li>Tiempo total de entrenamiento.</li>
+            <li>Tiempo promedio por época.</li>
+            <li>Accuracy de entrenamiento.</li>
+            <li>Accuracy de prueba.</li>
+            <li>Evolución de loss y accuracy.</li>
+        </ul>
+    </section>
+
+    <!-- 5. ARQUITECTURA -->
+    <section>
+        <h2>5. Arquitectura</h2>
+
+        <p>
+            El esquema de paralelismo implementado corresponde a
+            <strong>Data Parallelism</strong>.
+        </p>
+
+        <div class="architecture">
+                 Dataset CIFAR-10
+                       │
+                       ▼
+                DistributedSampler
+                 /             \
+                /               \
+           GPU 0               GPU 1
+          Batch 64             Batch 64
+             │                    │
+             ▼                    ▼
+        ResNet18             ResNet18
+             │                    │
+             ▼                    ▼
+         Gradientes           Gradientes
+             \                    /
+              \                  /
+               ─── ALLREDUCE ───
+                       │
+                       ▼
+              Gradientes sincronizados
+                       │
+                       ▼
+                Actualización
+                    de pesos
+        </div>
+
+        <p>
+            El batch global de 128 muestras se distribuye entre las dos GPUs:
+        </p>
+
+        <div class="formula">
+            128 = 64 + 64
+        </div>
+
+        <p>
+            Cada GPU mantiene una copia del modelo y procesa una porción
+            diferente de los datos. Después del <code>backward()</code>,
+            DDP sincroniza los gradientes mediante operaciones colectivas.
+        </p>
+    </section>
+
+    <!-- 6. BASELINE -->
+    <section>
+        <h2>6. Experimento baseline</h2>
+
+        <div class="result-grid">
+
+            <div class="result-card">
+                <div class="value">1</div>
+                <div class="label">GPU</div>
+            </div>
+
+            <div class="result-card">
+                <div class="value">667.2 s</div>
+                <div class="label">Tiempo total</div>
+            </div>
+
+            <div class="result-card">
+                <div class="value">44.5 s</div>
+                <div class="label">Tiempo / época</div>
+            </div>
+
+            <div class="result-card">
+                <div class="value">90.54%</div>
+                <div class="label">Test Accuracy</div>
+            </div>
+
+        </div>
+
+        <ul>
+            <li>GPUs: <strong>1</strong></li>
+            <li>Batch size: <strong>128</strong></li>
+            <li>Épocas: <strong>15</strong></li>
+            <li>Tiempo total: <strong>667.2 s</strong></li>
+            <li>Tiempo promedio por época: <strong>44.5 s</strong></li>
+            <li>Train Accuracy: <strong>94.40 %</strong></li>
+            <li>Test Accuracy: <strong>90.54 %</strong></li>
+        </ul>
+
+        <div class="highlight">
+            Este experimento constituye la línea base
+            <strong>T₁</strong> utilizada para calcular el speedup y la
+            eficiencia del entrenamiento distribuido.
+        </div>
+    </section>
+
+    <!-- 7. DDP -->
+    <section>
+        <h2>7. Experimento distribuido</h2>
+
+        <div class="result-grid">
+
+            <div class="result-card">
+                <div class="value">2</div>
+                <div class="label">GPUs</div>
+            </div>
+
+            <div class="result-card">
+                <div class="value">389.6 s</div>
+                <div class="label">Tiempo total</div>
+            </div>
+
+            <div class="result-card">
+                <div class="value">23.1 s</div>
+                <div class="label">Tiempo / época</div>
+            </div>
+
+            <div class="result-card">
+                <div class="value">90.99%</div>
+                <div class="label">Test Accuracy</div>
+            </div>
+
+        </div>
+
+        <ul>
+            <li>GPUs: <strong>2</strong></li>
+            <li>Batch global: <strong>128</strong></li>
+            <li>Batch por GPU: <strong>64</strong></li>
+            <li>Épocas: <strong>15</strong></li>
+            <li>Tiempo total: <strong>389.6 s</strong></li>
+            <li>Tiempo promedio por época: <strong>23.1 s</strong></li>
+            <li>Train Accuracy: <strong>95.32 %</strong></li>
+            <li>Test Accuracy: <strong>90.99 %</strong></li>
+        </ul>
+
+        <h3>Evolución del modelo distribuido</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Época</th>
+                    <th>Test Accuracy</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>40.57 %</td>
+                </tr>
+
+                <tr>
+                    <td>5</td>
+                    <td>65.65 %</td>
+                </tr>
+
+                <tr>
+                    <td>10</td>
+                    <td>84.79 %</td>
+                </tr>
+
+                <tr>
+                    <td>15</td>
+                    <td>90.99 %</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>
+            El <code>train_loss</code> disminuyó de
+            <strong>1.8886 a 0.1425</strong>, mientras que el
+            <code>train_accuracy</code> aumentó de
+            <strong>31.63 % a 95.32 %</strong>.
+        </p>
+
+        <p>
+            Estos resultados muestran que el modelo convergió correctamente.
+        </p>
+    </section>
+
+    <!-- 8. RESULTADOS -->
+    <section>
+        <h2>8. Resultados</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Métrica</th>
+                    <th>Secuencial</th>
+                    <th>DDP 2 GPUs</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>GPUs</td>
+                    <td>1</td>
+                    <td>2</td>
+                </tr>
+
+                <tr>
+                    <td>Épocas</td>
+                    <td>15</td>
+                    <td>15</td>
+                </tr>
+
+                <tr>
+                    <td>Batch global</td>
+                    <td>128</td>
+                    <td>128</td>
+                </tr>
+
+                <tr>
+                    <td>Batch/GPU</td>
+                    <td>128</td>
+                    <td>64</td>
+                </tr>
+
+                <tr>
+                    <td>Tiempo total</td>
+                    <td><strong>667.2 s</strong></td>
+                    <td><strong>389.6 s</strong></td>
+                </tr>
+
+                <tr>
+                    <td>Tiempo/época</td>
+                    <td><strong>44.5 s</strong></td>
+                    <td><strong>23.1 s</strong></td>
+                </tr>
+
+                <tr>
+                    <td>Train Accuracy</td>
+                    <td><strong>94.40 %</strong></td>
+                    <td><strong>95.32 %</strong></td>
+                </tr>
+
+                <tr>
+                    <td>Test Accuracy</td>
+                    <td><strong>90.54 %</strong></td>
+                    <td><strong>90.99 %</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="highlight">
+            <strong>Resultado principal:</strong>
+            el entrenamiento distribuido redujo considerablemente el tiempo
+            de ejecución manteniendo una accuracy de prueba comparable al
+            baseline.
+        </div>
+    </section>
+
+    <!-- 9. SPEEDUP -->
+    <section>
+        <h2>9. Speedup</h2>
+
+        <p>
+            El speedup se calcula comparando el tiempo del entrenamiento
+            secuencial con el tiempo del entrenamiento distribuido.
+        </p>
+
+        <div class="formula">
+            Speedup = 667.2 / 389.6 ≈ <strong>1.71×</strong>
+        </div>
+
+        <p>
+            Por tanto, utilizar dos GPUs permitió alcanzar un
+            <strong>speedup de aproximadamente 1.71×</strong>.
+        </p>
+
+        <p>
+            El tiempo de entrenamiento se redujo aproximadamente:
+        </p>
+
+        <div class="formula">
+            Reducción = (667.2 - 389.6) / 667.2 × 100
+                      ≈ <strong>41.6 %</strong>
+        </div>
+
+        <h3>Comparación con el speedup ideal</h3>
+
+        <ul>
+            <li>Speedup ideal con 2 GPUs: <strong>2×</strong></li>
+            <li>Speedup real: <strong>1.71×</strong></li>
+            <li>Diferencia respecto al ideal: <strong>0.29×</strong></li>
+        </ul>
+
+        <p>
+            El sistema no alcanza el speedup ideal debido a los costos
+            asociados a comunicación, sincronización y coordinación entre
+            los procesos distribuidos.
+        </p>
+    </section>
+
+    <!-- 10. EFICIENCIA -->
+    <section>
+        <h2>10. Eficiencia</h2>
+
+        <div class="formula">
+            E = 1.71 / 2 ≈ <strong>85.5 %</strong>
+        </div>
+
+        <p>
+            La eficiencia paralela obtenida fue aproximadamente
+            <strong>85.5 %</strong>.
+        </p>
+
+        <p>
+            Esto indica que una proporción elevada de la capacidad computacional
+            adicional de la segunda GPU fue aprovechada para acelerar el
+            entrenamiento.
+        </p>
+    </section>
+
+    <!-- 11. OVERHEAD -->
+    <section>
+        <h2>11. Brecha respecto al tiempo ideal</h2>
+
+        <p>
+            Si el speedup fuera perfectamente lineal, el tiempo esperado con
+            dos GPUs sería:
+        </p>
+
+        <div class="formula">
+            T<sub>ideal</sub> = 667.2 / 2 = <strong>333.6 s</strong>
+        </div>
+
+        <p>
+            Sin embargo, el tiempo real observado fue:
+        </p>
+
+        <div class="formula">
+            T<sub>real</sub> = <strong>389.6 s</strong>
+        </div>
+
+        <p>
+            Por lo tanto, la diferencia respecto al tiempo ideal es:
+        </p>
+
+        <div class="formula">
+            389.6 - 333.6 = <strong>56.0 s</strong>
+        </div>
+
+        <p>
+            Esta diferencia debe interpretarse como una
+            <strong>brecha respecto al rendimiento ideal</strong>, y no como
+            un costo exclusivamente de comunicación.
+        </p>
+
+        <p>Entre los factores que contribuyen se encuentran:</p>
+
+        <ul>
+            <li>Operaciones colectivas <strong>ALLREDUCE</strong>.</li>
+            <li>Comunicación entre procesos.</li>
+            <li>Sincronización mediante <code>barrier</code>.</li>
+            <li>Particionamiento del dataset mediante <code>DistributedSampler</code>.</li>
+            <li>Coordinación de los procesos de entrenamiento.</li>
+            <li>Overhead general del runtime distribuido.</li>
+        </ul>
+
+        <div class="highlight">
+            <strong>Conclusión:</strong><br>
+            Paralelismo no significa velocidad ideal. Al aumentar el número
+            de recursos computacionales también aparecen costos de
+            comunicación y coordinación.
+        </div>
+
+        <p>
+            Este comportamiento es consistente con los principios de la
+            <strong>Ley de Amdahl</strong> y con los costos asociados a las
+            operaciones colectivas en sistemas paralelos.
+        </p>
+    </section>
+
+    <!-- 12. CONCLUSIONES -->
+    <section>
+        <h2>12. Conclusiones</h2>
+
+        <ol>
+            <li>
+                Se implementó exitosamente <strong>Data Parallelism</strong>
+                mediante PyTorch DistributedDataParallel utilizando dos GPUs
+                NVIDIA T4.
+            </li>
+
+            <li>
+                El tiempo de entrenamiento se redujo de
+                <strong>667.2 s</strong> a <strong>389.6 s</strong>,
+                obteniendo un speedup de <strong>1.71×</strong>.
+            </li>
+
+            <li>
+                La eficiencia paralela alcanzó aproximadamente
+                <strong>85.5 %</strong>.
+            </li>
+
+            <li>
+                La precisión del modelo se mantuvo comparable:
+                <strong>90.54 %</strong> en el baseline frente a
+                <strong>90.99 %</strong> en DDP.
+            </li>
+
+            <li>
+                La diferencia de <strong>0.45 puntos porcentuales</strong>
+                no representa un deterioro del rendimiento predictivo.
+            </li>
+
+            <li>
+                La diferencia de <strong>56.0 s</strong> respecto al tiempo
+                ideal evidencia los costos asociados a comunicación,
+                sincronización y coordinación.
+            </li>
+
+            <li>
+                Los resultados demuestran experimentalmente conceptos de
+                Computación Paralela como speedup sublineal, eficiencia menor
+                al 100 %, operaciones colectivas y overhead de coordinación.
+            </li>
+        </ol>
+
+        <div class="conclusion">
+            <strong>Conclusión general:</strong>
+
+            <p>
+                El experimento demuestra cuantitativamente que el entrenamiento
+                distribuido mediante PyTorch DDP permite reducir
+                significativamente el tiempo de entrenamiento de una red
+                neuronal utilizando dos GPUs, manteniendo una calidad de
+                clasificación comparable al entrenamiento secuencial.
+            </p>
+
+            <p>
+                El speedup obtenido fue de <strong>1.71×</strong>, con una
+                eficiencia de <strong>85.5 %</strong>, demostrando que el
+                paralelismo es efectivo aunque no alcanza el rendimiento
+                lineal ideal debido a los costos de comunicación y
+                sincronización.
+            </p>
+        </div>
+    </section>
+
+    <!-- REFERENCIA -->
+    <section>
+        <h2>13. Números finales de referencia</h2>
+
+        <div class="metrics-final">
+BASELINE
+T1          = 667.2 s
+Accuracy    = 90.54 %
+
+DDP (2 GPUs)
+T2          = 389.6 s
+Accuracy    = 90.99 %
+
+SPEEDUP     = 1.71×
+EFICIENCIA  = 85.5 %
+REDUCCIÓN   = 41.6 %
+BRECHA IDEAL ≈ 56.0 s
+        </div>
+    </section>
+
+</main>
+
+<footer>
+    <p>
+        Proyecto de Computación Paralela –
+        Entrenamiento distribuido con PyTorch DDP
+    </p>
+</footer>
+
+</body>
+</html>
